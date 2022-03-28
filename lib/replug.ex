@@ -23,17 +23,7 @@ defmodule Replug do
 
   @impl true
   def init(opts) do
-    plug =
-      case Keyword.get(opts, :plug) do
-        nil ->
-          raise("Replug requires a :plug entry with a module or tuple value")
-
-        {plug_module, opts} when is_atom(plug_module) ->
-          {plug_module, opts}
-
-        plug_module when is_atom(plug_module) ->
-          {plug_module, :only_dynamic_opts}
-      end
+    plug = parse_plug_opt(opts)
 
     %{
       plug: plug,
@@ -42,7 +32,13 @@ defmodule Replug do
   end
 
   @impl true
-  def call(conn, %{plug: {plug_module, :only_dynamic_opts}, opts: {opts_module, opts_function}}) do
+  def call(conn, %{plug: {:fn, plug_function, :only_dynamic_opts}, opts: {opts_module, opts_function}}) do
+    opts = apply(opts_module, opts_function, [])
+
+    plug_function.(conn, opts)
+  end
+
+  def call(conn, %{plug: {:mod, plug_module, :only_dynamic_opts}, opts: {opts_module, opts_function}}) do
     opts =
       opts_module
       |> apply(opts_function, [])
@@ -89,5 +85,25 @@ defmodule Replug do
 
   defp merge_opts(static_opts, dynamic_opts) when is_map(static_opts) and is_map(dynamic_opts) do
     Map.merge(static_opts, dynamic_opts)
+  end
+
+  defp parse_plug_opt(opts) do
+    case Keyword.get(opts, :plug) do
+      nil ->
+        raise("Replug requires a :plug entry with a module or tuple value")
+
+      {plug_module, opts} when is_atom(plug_module) ->
+        {plug_module, opts}
+
+      plug_module when is_atom(plug_module) or is_function(plug_module) ->
+        {plug_module, :only_dynamic_opts}
+    end
+    |> case do
+      {plug_function, opts} when is_function(plug_function) ->
+        {:fn, plug_function, opts}
+
+      {plug_module, opts} ->
+        {:mod, plug_module, opts}
+    end
   end
 end
