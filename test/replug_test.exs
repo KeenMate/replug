@@ -57,7 +57,7 @@ defmodule ReplugTest do
       opts =
         Replug.init(
           plug: {SimpleAssign, [static_opts: "dummy_value"]},
-          opts: {Replug.Configs.EnvVar, :resolve, [some_value: "SOME_VALUE"]}
+          opts: {Replug.Configs.EnvVar, :resolve, [[some_value: "SOME_VALUE"]]}
         )
 
       conn =
@@ -74,7 +74,7 @@ defmodule ReplugTest do
       opts =
         Replug.init(
           plug: SimpleAssign,
-          opts: {Replug.Configs.EnvVar, :resolve, [some_value: "SOME_VALUE"]}
+          opts: {Replug.Configs.EnvVar, :resolve, [[some_value: "SOME_VALUE"]]}
         )
 
       conn =
@@ -91,7 +91,7 @@ defmodule ReplugTest do
       opts =
         Replug.init(
           plug: SimpleAssign,
-          opts: {Replug.Configs.EnvVar, :resolve, %{some_value: "SOME_VALUE"}}
+          opts: {Replug.Configs.EnvVar, :resolve, [%{some_value: "SOME_VALUE"}]}
         )
 
       conn =
@@ -108,7 +108,7 @@ defmodule ReplugTest do
       opts =
         Replug.init(
           plug: {SimpleAssign, %{static_opts: "dummy_value"}},
-          opts: {Replug.Configs.AppEnv, :resolve, %{some_value: [:my_app, :app_config_test]}}
+          opts: {Replug.Configs.AppEnv, :resolve, [%{some_value: [:my_app, :app_config_test]}]}
         )
 
       conn =
@@ -125,7 +125,7 @@ defmodule ReplugTest do
       opts =
         Replug.init(
           plug: SimpleAssign,
-          opts: {Replug.Configs.AppEnv, :resolve, %{some_value: [:my_app, :app_config_test]}}
+          opts: {Replug.Configs.AppEnv, :resolve, [%{some_value: [:my_app, :app_config_test]}]}
         )
 
       conn =
@@ -142,7 +142,7 @@ defmodule ReplugTest do
       opts =
         Replug.init(
           plug: SimpleAssign,
-          opts: {Replug.Configs.AppEnv, :resolve, [some_value: [:my_app, :app_config_test]]}
+          opts: {Replug.Configs.AppEnv, :resolve, [[some_value: [:my_app, :app_config_test]]]}
         )
 
       conn =
