@@ -21,6 +21,8 @@ defmodule Replug do
 
   @behaviour Plug
 
+  defguardp is_valid_plug_name(plug) when is_atom(plug) or is_function(plug)
+
   @impl true
   def init(opts) do
     plug = parse_plug_opt(opts)
@@ -32,32 +34,6 @@ defmodule Replug do
   end
 
   @impl true
-  # def call(conn, %{plug: {:fn, plug_function, :only_dynamic_opts}, opts: {opts_module, opts_function}}) do
-  #   opts = apply(opts_module, opts_function, [])
-
-  #   plug_function.(conn, opts)
-  # end
-
-  def call(conn, %{plug: {plug_type, plug_module, :only_dynamic_opts}, opts: {opts_module, opts_function}}) do
-    opts =
-      opts_module
-      |> apply(opts_function, [])
-      |> plug_module.init()
-
-    plug_module.call(conn, opts)
-  end
-
-  def call(conn, %{plug: {plug_module, static_opts}, opts: {opts_module, opts_function}}) do
-    dynamic_opts = apply(opts_module, opts_function, [])
-
-    opts =
-      static_opts
-      |> merge_opts(dynamic_opts)
-      |> plug_module.init()
-
-    plug_module.call(conn, opts)
-  end
-
   def call(conn, %{plug: {plug_type, plug_module, plug_opts}, opts: opts}) do
     opts = build_plug_opts(plug_type, plug_module, plug_opts, opts)
 
@@ -77,11 +53,11 @@ defmodule Replug do
       nil ->
         raise("Replug requires a :plug entry with a module or tuple value")
 
-      {plug_module, opts} when is_atom(plug_module) ->
-        {plug_module, opts}
+      {plug, opts} when is_valid_plug_name(plug) ->
+        {plug, opts}
 
-      plug_module when is_atom(plug_module) or is_function(plug_module) ->
-        {plug_module, :only_dynamic_opts}
+      plug when is_valid_plug_name(plug) ->
+        {plug, :only_dynamic_opts}
     end
     |> plug_with_type()
   end
@@ -94,8 +70,8 @@ defmodule Replug do
     {:mod, plug_param, opts}
   end
 
-  defp build_plug_opts(plug_type, plug_module, plug_opts, {opts_module, opts_function, opt_args}) do
-    dynamic_opts = apply(opts_module, opts_function, opt_args)
+  defp build_plug_opts(plug_type, plug, plug_opts, opts) do
+    dynamic_opts = call_opts(opts)
 
     case plug_opts do
       :only_dynamic_opts ->
@@ -104,15 +80,23 @@ defmodule Replug do
       static_opts ->
         merge_opts(static_opts, dynamic_opts)
     end
-    |> maybe_plug_init()
+    |> maybe_plug_init(plug_type, plug)
   end
 
   defp maybe_plug_init(opts, :fn, _plug_fn) do
     opts
   end
 
-  defp maybe_plug_init(opts, :mod, plug_mod) do
-    plug_mod.init(opts)
+  defp maybe_plug_init(opts, :mod, plug_module) do
+    plug_module.init(opts)
+  end
+
+  defp call_opts({opts_module, opts_function, opt_args}) do
+    apply(opts_module, opts_function, opt_args)
+  end
+
+  defp call_opts(opts_fn) when is_function(opts_fn) do
+    opts_fn.()
   end
 
   defp merge_opts(static_opts, dynamic_opts)
