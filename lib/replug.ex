@@ -95,6 +95,7 @@ defmodule Replug do
   end
 
   defp maybe_plug_init(opts, :mod, plug_module) do
+    Code.ensure_loaded!(plug_module)
     if function_exported?(plug_module, :init, 1) do
       plug_module.init(opts)
     else
